@@ -93,8 +93,40 @@ export default function StopsTab({ data }) {
       )}
 
       {editing !== null && (
-        <div className="card p-4 space-y-3">
-          <h3 className="font-semibold text-sm">{editing === 'new' ? 'New stop' : `Edit ${form.name || `#${editing}`}`}</h3>
+        <div className="card p-4 space-y-4">
+          <h3 className="font-semibold text-sm">{editing === 'new' ? '✏️ Add a stop' : `✏️ Edit ${form.name || `#${editing}`}`}</h3>
+
+          <div>
+            <div className="rounded-xl bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-900/40 px-3 py-2 mb-2 flex items-start gap-2">
+              <span className="text-lg leading-none">📍</span>
+              <p className="text-sm text-brand-800 dark:text-brand-100">
+                <b>Click the map to place the stop</b>, then drag the marker to
+                fine-tune it. You can also drag any existing stop marker to
+                reposition it here.
+              </p>
+            </div>
+            <AdminMap
+              routes={routes}
+              stops={stops}
+              mode="place-stop"
+              draftPoint={form.lat != null ? { lat: form.lat, lng: form.lng } : null}
+              onMapClick={onMapClick}
+              onDraftDragEnd={(ll) => setForm((f) => ({ ...f, lat: ll.lat, lng: ll.lng }))}
+              onStopDrag={(id, ll) => setForm((f) => ({ ...f, lat: ll.lat, lng: ll.lng }))}
+              minHeight={360}
+            />
+            <div className="flex items-center justify-between mt-1 gap-2">
+              <p className="text-xs text-slate-500 font-mono">
+                {form.lat != null ? `${form.lat.toFixed(6)}, ${form.lng.toFixed(6)}` : 'No position yet'}
+              </p>
+              {form.lat != null && (
+                <button className="btn-secondary !py-0.5 !px-2 !min-h-0 text-[11px]" onClick={() => setForm((f) => ({ ...f, lat: null, lng: null }))}>
+                  Clear position
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Name</label>
@@ -104,20 +136,6 @@ export default function StopsTab({ data }) {
               <label className="label">Code</label>
               <input className="input" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="ST-13" />
             </div>
-          </div>
-
-          <div>
-            <p className="label mb-1">Position — click the map to place it</p>
-            <AdminMap
-              routes={routes}
-              stops={stops}
-              mode="place-stop"
-              draftPoint={form.lat != null ? { lat: form.lat, lng: form.lng } : null}
-              onMapClick={onMapClick}
-            />
-            <p className="text-xs text-slate-500 mt-1 font-mono">
-              {form.lat != null ? `${form.lat.toFixed(6)}, ${form.lng.toFixed(6)}` : 'No position yet'}
-            </p>
           </div>
 
           <div className="flex gap-2">
