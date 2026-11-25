@@ -78,6 +78,7 @@ project.
 campusride/
 ├── docker-compose.yml          # PostGIS container + auto-init schema & seed
 ├── .env.example                # server env template
+├── .github/workflows/ci.yml    # GitHub Actions: build client + boot PostGIS (schema/seed check)
 ├── server/
 │   ├── src/
 │   │   ├── index.js / app.js   # boot, middleware, route mounting
@@ -88,12 +89,15 @@ campusride/
 │   │   ├── services/           # routeModel, routesCache, liveStore
 │   │   ├── socket/             # Socket.IO (driver:location → bus:update …)
 │   │   └── db/                 # schema.sql + seed.sql
-│   └── scripts/                # init-db.js, generate-hashes.js
+│   └── scripts/                # init-db.js, generate-hashes.js, gps-simulator.js,
+│                               #   smoke-test.ps1
 └── client/
     ├── vite.config.js          # dev proxy /api + /socket.io → :5000
+    ├── public/                 # manifest.webmanifest, sw.js (service worker), PWA icons
+    ├── scripts/                # generate-icons.ps1 (regenerate the PWA icon set)
     └── src/
-        ├── lib/                # api, socket, token, useAuth, format
-        ├── hooks/              # useDarkMode
+        ├── lib/                # api, socket, token, pwa, useAuth, format
+        ├── hooks/              # useDarkMode, useInstallPrompt
         └── pages/
             ├── student/        # MapView, Panels, hooks (live buses, alerts…)
             ├── driver/         # login, dashboard, useGpsSharing
@@ -162,6 +166,25 @@ hashes with `node scripts/generate-hashes.js <PIN>` if you edit the seed.
 | `npm run dev` | Vite dev server (port 5173, proxy to :5000) |
 | `npm run build` | Production build to `dist/` (targets ES2020 for low-end WebViews) |
 | `npm run preview` | Preview the production build locally (PWA/service worker active) |
+| `node scripts/generate-icons.ps1` | Regenerate the PWA/app icons (PowerShell + System.Drawing) |
+
+## Automated checks (CI)
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push to
+`main` and on every pull request, so the repo validates itself without needing a
+local environment:
+
+1. **Build the client** — `npm ci && npm run build` (a compile error fails CI).
+2. **Install the server** — `npm ci` (dependencies cached from the lockfile).
+3. **Validate Compose** — `docker compose config --quiet`.
+4. **Boot the real PostGIS database** — starts the `db` service and waits for its
+   healthcheck. Because Docker mounts `schema.sql` + `seed.sql` and applies them
+   on first boot with an empty volume, a schema or seed regression breaks CI —
+   not just the runtime.
+
+The end-to-end API smoke test (`server/scripts/smoke-test.ps1`) needs a *running*
+API + DB, so it is not part of CI; run it locally after changes (see
+[Testing guide](#testing-guide)).
 
 ## GPS simulator (test without real buses)
 
@@ -413,6 +436,50 @@ trip history, reports, the trip planner and admin feedback endpoints.
    stops/routes and the "offline" state appears instead of errors.
 5. **Security smoke**: hitting `/api/admin/*` without a token returns 401, with a
    driver token returns 403, and with the admin token succeeds.
+
+## Troubleshooting
+
+**The map is empty / no buses appear** — that's normal on a fresh start: buses
+only show while a trip is active. Start the simulator (`cd server && npm run sim`)
+or log into the driver app and tap **Start trip**.
+
+**Schema errors (`relation "stops" does not exist`, …)** — the database wasn't
+initialised, or `DATABASE_URL` points at the wrong database. Reset it:
+`docker compose down -v && docker compose up -d` (re-applies schema + seed), or
+run `npm run db:init` against a fresh PostGIS database.
+
+**Ports 5000 / 5173 / 5432 already in use** — another process holds them. Change
+`PORT` in `server/.env`, `server.port` in `client/vite.config.js`, or the host
+port in `docker-compose.yml`, then restart.
+
+**CORS errors after deploying** — `CLIENT_ORIGIN` must list the *exact* frontend
+origin(s) you load the app from (no trailing slash, comma-separated); the Vite
+dev proxy avoids CORS entirely in development.
+
+**Map tiles won't load** — the OpenStreetMap tile layer needs internet access and
+its public servers can be slow on some networks. Live bus positions stream over
+the WebSocket independently of the tiles, so the map can still update.
+
+**Geolocation / notifications / PWA install don't work** — all three require a
+**secure origin**: HTTPS (or `localhost`). They won't work over plain `http://`
+when reaching the app from a phone on your LAN — serve the built app over HTTPS,
+or test on `http://localhost`.
+
+**Wake Lock keeps releasing** — the Wake Lock API is only available on
+Chromium-based mobile browsers and the lock is released when the tab loses
+focus. GPS sharing continues regardless; re-focusing the tab re-acquires it
+automatically.
+
+**Service worker doesn't register in dev** — by design the worker only activates
+in production builds (`npm run build && npm run preview`) so Vite HMR never
+fights the cache.
+
+**Admin edits don't show up on the map** — route/stop geometry is cached on the
+server (`services/routesCache.js`) and refreshes on every admin save and on a
+60-second safety timer, so changes land within a minute.
+
+**Icons look wrong** — regenerate `client/scripts/generate-icons.ps1` output (runs
+on Windows PowerShell / System.Drawing) and rebuild the frontend.
 
 ## Before production
 
