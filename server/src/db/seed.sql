@@ -1,10 +1,12 @@
 -- ============================================================================
 -- KNUST Bus Tracker — Seed data (KNUST campus, Kumasi)
 --
--- IMPORTANT: The single route (Shuttle Station → Brunei) and its 6 stops use
+-- IMPORTANT: The single route (Shuttle Station → Brunei) and its 7 stops use
 -- real surveyed GPS coordinates (Google Plus Codes MCMF+36R / MCGJ+2XV etc.)
 -- supplied by the transport team. Section 9's sample trip history uses the
 -- same surveyed points.
+-- ST-07 (THE CHURCH OF PENTECOST BUS STOP) was added later and sits between
+-- ST-05 and ST-06 in Route R1's travel order.
 --
 -- Dev credentials:
 --   Admin:  0241234001 / PIN admin123
@@ -21,7 +23,9 @@ INSERT INTO stops (name, code, geom) VALUES
   ('Peace Junction Bus-Stop A',   'ST-03', ST_SetSRID(ST_Point(-1.5728044, 6.6792775), 4326)),
   ('Trinity Bus Stop',            'ST-04', ST_SetSRID(ST_Point(-1.5671778, 6.6693073), 4326)),
   ('Shuttle Station (MCGJ+2XV)',  'ST-05', ST_SetSRID(ST_Point(-1.5675626, 6.6751188), 4326)),
-  ('Brunei Bus Stop',             'ST-06', ST_SetSRID(ST_Point(-1.5741533, 6.6704376), 4326))
+  ('Brunei Bus Stop',             'ST-06', ST_SetSRID(ST_Point(-1.5741533, 6.6704376), 4326)),
+  -- Travel position: between ST-05 and ST-06 on Route R1 (Shuttle Station → Brunei).
+  ('THE CHURCH OF PENTECOST BUS STOP', 'ST-07', ST_SetSRID(ST_Point(-1.5675614, 6.6745292), 4326))
 ON CONFLICT (code) DO NOTHING;
 
 -- 2. ROUTES
@@ -32,6 +36,7 @@ WITH r1 AS (
     ST_SetSRID(ST_Point(-1.5728044, 6.6792775), 4326),
     ST_SetSRID(ST_Point(-1.5671778, 6.6693073), 4326),
     ST_SetSRID(ST_Point(-1.5675626, 6.6751188), 4326),
+    ST_SetSRID(ST_Point(-1.5675614, 6.6745292), 4326),
     ST_SetSRID(ST_Point(-1.5741533, 6.6704376), 4326)
   ]), 0.0006)::geometry(LineString, 4326) AS path
 )
@@ -50,7 +55,8 @@ FROM (VALUES
   ('R1', 3, 'Peace Junction Bus-Stop A'),
   ('R1', 4, 'Trinity Bus Stop'),
   ('R1', 5, 'Shuttle Station (MCGJ+2XV)'),
-  ('R1', 6, 'Brunei Bus Stop')
+  ('R1', 6, 'THE CHURCH OF PENTECOST BUS STOP'),
+  ('R1', 7, 'Brunei Bus Stop')
 ) AS v(code, seq, stop_name)
 JOIN routes r ON r.code = v.code
 JOIN stops s ON s.name = v.stop_name
@@ -146,7 +152,8 @@ FROM (VALUES
   ( 2, 6.6792775, -1.5728044, 23, 335),
   ( 3, 6.6693073, -1.5671778, 24, 150),
   ( 4, 6.6751188, -1.5675626, 22, 355),
-  ( 5, 6.6704376, -1.5741533, 22, 235)
+  ( 5, 6.6745292, -1.5675614, 22, 180),
+  ( 6, 6.6704376, -1.5741533, 22, 235)
 ) AS v(idx, lat, lng, speed, heading)
 CROSS JOIN trip t
 ON CONFLICT DO NOTHING;
