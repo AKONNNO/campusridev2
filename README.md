@@ -338,11 +338,19 @@ The app splits into a Node/Express + Socket.IO **backend** and a static React
 **frontend**. Because Socket.IO needs long-lived, stateful connections, keep the
 backend on a persistent Node host (not a serverless function), and the database
 must be **PostgreSQL with PostGIS** — a plain managed Postgres is not enough.
-Two deployment config files ship with the repo to make this easy: `client/vercel.json`
-(Vite build config + SPA rewrites so `/driver`, `/admin`, etc. resolve back to
-`index.html`) and `server/render.yaml` (a Render blueprint with build/start
-commands and slots for `DATABASE_URL` / `JWT_SECRET` / `CLIENT_ORIGIN`). The
-full walkthrough is below.
+Two deployment config files ship with the repo to make this easy: `vercel.json`
+(builds the Vite frontend and serves it with SPA rewrites so `/driver`,
+`/admin`, etc. resolve back to `index.html`) and `server/render.yaml` (a Render
+blueprint with build/start commands and slots for `DATABASE_URL` / `JWT_SECRET`
+/ `CLIENT_ORIGIN`). The full walkthrough is below.
+
+> **Vercel can only host the frontend.** The repo's real-time backend is a
+> long-lived Socket.IO + Express server with an in-memory live-bus store — that
+> does **not** run on Vercel's serverless platform. Deploy the frontend to
+> Vercel and the backend to Render/Railway/a VPS (below). The root `vercel.json`
+> already builds and serves the client; to point the client at a deployed
+> backend, set `VITE_API_URL` / `VITE_SOCKET_URL` in Vercel's Project Settings →
+> Environment Variables.
 
 > **PostGIS tripping point.** Render's managed Postgres does **not** bundle
 > PostGIS, so on Render point `DATABASE_URL` at a PostGIS-enabled external
