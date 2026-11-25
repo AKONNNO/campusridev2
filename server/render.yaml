@@ -1,0 +1,32 @@
+# Render blueprint for the KNUST Bus Tracker backend (Express + Socket.IO + PostGIS).
+#
+# Deploy:
+#   1. Push this repo to GitHub.
+#   2. In the Render dashboard -> New -> Blueprint, point it at the repo.
+#      Render reads this file, creates the web service, and stops to ask you
+#      for the DATABASE_URL / JWT_SECRET / CLIENT_ORIGIN values (sync: false).
+#   3. Create the PostGIS database FIRST (Supabase / Neon / your own PostGIS
+#      host) and apply the schema + seed once — Render runs `preDeployCommand`
+#      (`npm run db:init`) automatically on the first deploy.
+# NOTE: this is the BACKEND only. The React frontend is deployed separately to
+# Vercel (see client/vercel.json).
+services:
+  - type: web
+    name: knust-bus-tracker-api
+    runtime: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci --omit=dev
+    preDeployCommand: npm run db:init
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
