@@ -92,7 +92,7 @@ function FeedbackTab({ stops, busList }) {
 
       <textarea
         className="input min-h-[100px]"
-        placeholder="What happened? e.g. The 5pm Campus Loop was too full again…"
+        placeholder="What happened? e.g. The 5pm Shuttle was too full again…"
         value={form.message}
         onChange={(e) => setForm({ ...form, message: e.target.value })}
       />

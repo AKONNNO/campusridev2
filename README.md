@@ -415,13 +415,14 @@ There is also an automated one: with the backend running on :5000, run the
 driver context, a full trip start → status → live bus → arrivals → end,
 trip history, reports, the trip planner and admin feedback endpoints.
 
-1. **Student app** — the map shows route polylines and stop markers, the banner
-   shows the seeded announcements, and no console errors appear. To see buses
-   without a real driver, start the GPS simulator in a second terminal
-   (`cd server && npm run sim`) — the map will animate KN-101/KN-102 on the
-   Campus Loop and KN-103 on the Tech Shuttle, with live next-stop + ETAs.
-2. **Driver app** — log in as *0241234002* / *1234*, pick the Campus Loop, tap
-   **Start trip**. The GPS-sharing banner turns green. In another tab the
+1. **Student app** — the map shows the route polyline and the 6 surveyed stop
+   markers, the banner shows the seeded announcements, and no console errors
+   appear. To see buses without a real driver, start the GPS simulator in a
+   second terminal (`cd server && npm run sim`) — the map will animate
+   KN-101/KN-102/KN-103 along the Shuttle–Brunei route with live next-stop +
+   ETAs.
+2. **Driver app** — log in as *0241234002* / *1234*, pick the Shuttle to Brunei
+   route, tap **Start trip**. The GPS-sharing banner turns green. In another tab the
    student map shows the bus moving (you can nudge it by walking/driving).
    Try **Break / Breakdown / Full** and watch the student's bus card update.
    Tap **End trip** — the bus disappears from the live map.
