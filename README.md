@@ -338,6 +338,11 @@ The app splits into a Node/Express + Socket.IO **backend** and a static React
 **frontend**. Because Socket.IO needs long-lived, stateful connections, keep the
 backend on a persistent Node host (not a serverless function), and the database
 must be **PostgreSQL with PostGIS** — a plain managed Postgres is not enough.
+Two deployment config files ship with the repo to make this easy: `client/vercel.json`
+(Vite build config + SPA rewrites so `/driver`, `/admin`, etc. resolve back to
+`index.html`) and `server/render.yaml` (a Render blueprint with build/start
+commands and slots for `DATABASE_URL` / `JWT_SECRET` / `CLIENT_ORIGIN`). The
+full walkthrough is below.
 
 > **PostGIS tripping point.** Render's managed Postgres does **not** bundle
 > PostGIS, so on Render point `DATABASE_URL` at a PostGIS-enabled external

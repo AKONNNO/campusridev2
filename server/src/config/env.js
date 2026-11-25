@@ -48,4 +48,9 @@ export const env = {
   MAX_ACCURACY_M: 50,
   MAX_JUMP_M: 150, // max metres between two consecutive updates
   MAX_SPEED_KMH: 90, // cap to reject unrealistic readings
+
+  /** Supabase (optional). Service-role key is server-only; anon allowed for client. */
+  SUPABASE_URL: (process.env.SUPABASE_URL || '').replace(/\/$/, ''),
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 };
