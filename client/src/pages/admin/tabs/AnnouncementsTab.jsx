@@ -79,7 +79,7 @@ export default function AnnouncementsTab({ data }) {
             </div>
             <div className="sm:col-span-2">
               <label className="label">Title</label>
-              <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Campus Loop delayed near Katanga" />
+              <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Shuttle delayed near Trinity" />
             </div>
           </div>
           <div>

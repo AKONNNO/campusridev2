@@ -1,0 +1,6 @@
+# Vercel only hosts the frontend (client/). Exclude everything else.
+node_modules
+server
+docker-compose.yml
+e.yml
+*.md
