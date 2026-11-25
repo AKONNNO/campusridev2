@@ -1,0 +1,40 @@
+###############################################################################
+# KNUST Bus Tracker - local infrastructure
+#
+#   docker compose up -d
+#
+# Starts a single PostgreSQL + PostGIS container. On the very first boot
+# (empty data volume) it automatically applies:
+#    01-schema.sql   -> creates extensions, tables, indexes, functions
+#    02-seed.sql     -> inserts the KNUST placeholder reference data
+#
+# To reset the database from scratch:  docker compose down -v && docker compose up -d
+###############################################################################
+
+name: knust-bus-tracker
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: knust_bus_tracker_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: knust_bus_tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Auto-apply schema + seed on first boot (runs in alphabetical order).
+      - ./server/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./server/src/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d knust_bus_tracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  pgdata:

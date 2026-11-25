@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Start database and wait for healthcheck
+        run: |
+          docker compose up --pull always -d db
+          for attempt in {1..30}; do
+            status=$(docker inspect --format='{{.State.Health.Status}}' knust_bus_tracker_db 2>/dev/null || true)
+            if [ "$status" = "healthy" ]; then
+              echo "PostGIS is healthy"
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              docker compose logs db
+              exit 1
+            fi
+            sleep 2
+          done
+          docker compose logs db
+          echo "Timed out waiting for PostGIS healthcheck"
+          exit 1
+
+      - name: Stop database
+        if: always()
+        run: docker compose down

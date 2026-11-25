@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- PWA: theme-color has an id so useDarkMode keeps it in sync with the
+         app's light/dark mode (browser chrome + Android status bar). -->
+    <meta name="theme-color" id="theme-color-meta" content="#0f172a" />
+    <meta name="description" content="KNUST Bus Tracker — live campus bus locations, ETAs and trip planning." />
+    <title>KNUST Bus Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Web app manifest → makes the app installable (Add to Home Screen). -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- iOS home-screen support: standalone mode + touch icon. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="KNUST Bus" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <div style="padding: 24px; text-align: center; font-family: system-ui, sans-serif">
+        KNUST Bus Tracker needs JavaScript to show the live map. Please enable it and reload.
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
