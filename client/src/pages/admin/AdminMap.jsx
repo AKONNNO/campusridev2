@@ -19,8 +19,12 @@ import '../student/leaflet.css';
  *
  * Supports three modes:
  *   'view'        live buses + routes + stops (Overview, Trips replay)
- *   'place-stop'  clicking the map sets draftPoint (Stops tab)
- *   'draw-route'  every click appends a point to routePoints (Routes tab)
+ *   'place-stop'  clicking the map sets draftPoint (Stops tab); the draft
+ *                 marker is draggable and existing stops can be dragged to
+ *                 copy/reposition the stop being edited
+ *   'draw-route'  every click appends a point to routePoints (Routes tab);
+ *                 clicking an existing stop toggles it in the route's ordered
+ *                 stop list (a numbered badge shows its position)
  *
  * Everything the maps need is already in the admin data: routes carry
  * `path` (lat/lng polyline) and ordered `stops`; drawing overlays are passed
@@ -60,6 +64,21 @@ const rpIcon = L.divIcon({
   iconSize: [13, 13],
   iconAnchor: [6.5, 6.5],
 });
+
+/** Gold stop marker — used for draggable stops in place-stop mode. */
+const stopIcon = L.divIcon({
+  html: '<div style="width:18px;height:18px;border-radius:50%;background:#c9a227;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:grab"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
+/** Numbered teal badge showing a stop's position in the route being edited. */
+const stopNumIcon = (n) =>
+  L.divIcon({
+    html: `<div style="width:24px;height:24px;border-radius:50%;background:#0d9488;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)">${n}</div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
 
 /** Hands the live map instance to the parent (for flyTo etc.). */
 function MapHandoff({ onMap }) {
@@ -107,6 +126,10 @@ export default function AdminMap({
   highlightStopId = null,
   onBusClick,
   onStopClick,
+  onStopDrag,
+  onDraftDragEnd,
+  routeStopOrder = null,
+  minHeight = 320,
   mode = 'view',
   draftPoint = null,
   routePoints = [],
@@ -114,7 +137,10 @@ export default function AdminMap({
   onMap,
 }) {
   return (
-    <div className="relative h-full w-full min-h-[320px] rounded-2xl overflow-hidden border border-slate-200 dark:border-night-700">
+    <div
+      className="relative h-full w-full min-h-[320px] rounded-2xl overflow-hidden border border-slate-200 dark:border-night-700"
+      style={{ minHeight }}
+    >
       <MapContainer
         center={CENTER}
         zoom={DEFAULT_ZOOM}
@@ -139,29 +165,72 @@ export default function AdminMap({
           ) : null
         )}
 
-        {/* stops */}
-        {stops.map((s) => (
-          <CircleMarker
-            key={s.id}
-            center={[s.lat, s.lng]}
-            radius={highlightStopId === s.id ? 10 : 6}
-            pathOptions={{
-              color: '#c9a227',
-              weight: 2,
-              fillColor: '#fff',
-              fillOpacity: 1,
-            }}
-            eventHandlers={{ click: () => onStopClick?.(s) }}
-          >
-            <Tooltip>{s.name}</Tooltip>
-            <Popup>
-              <div className="text-sm">
-                <div className="font-bold">{s.name}</div>
-                <div className="text-xs text-slate-500">{s.code}</div>
-              </div>
-            </Popup>
-          </CircleMarker>
-        ))}
+        {/* stops — in place-stop mode they are draggable Markers so the admin
+            can grab any stop and pop it where they want; in draw-route mode
+            every stop is clickable to toggle it in the route order. */}
+        {stops.map((s) => {
+          const order = routeStopOrder?.[s.id] ?? null;
+          if (mode === 'place-stop') {
+            return (
+              <Marker
+                key={s.id}
+                position={[s.lat, s.lng]}
+                icon={stopIcon}
+                draggable
+                eventHandlers={{
+                  dragend: (e) => onStopDrag?.(s.id, e.target.getLatLng()),
+                }}
+              >
+                <Tooltip>{s.name} — drag to reposition</Tooltip>
+              </Marker>
+            );
+          }
+          return (
+            <CircleMarker
+              key={s.id}
+              center={[s.lat, s.lng]}
+              radius={order ? 9 : highlightStopId === s.id ? 10 : 6}
+              pathOptions={
+                order
+                  ? { color: '#0d9488', weight: 3, fillColor: '#0d9488', fillOpacity: 1 }
+                  : { color: '#c9a227', weight: 2, fillColor: '#fff', fillOpacity: 1 }
+              }
+              eventHandlers={{
+                click: (e) => {
+                  // Don't let the click bubble to the map (that would also draw
+                  // a route point when drawing a route).
+                  L.DomEvent.stopPropagation(e.originalEvent);
+                  onStopClick?.(s);
+                },
+              }}
+            >
+              <Tooltip>
+                {order ? `${order}. ${s.name} — click to remove` : s.name}
+              </Tooltip>
+              <Popup>
+                <div className="text-sm">
+                  <div className="font-bold">{s.name}</div>
+                  <div className="text-xs text-slate-500">{s.code}</div>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+        {/* numbered badges for stops already in the route order (draw-route) */}
+        {mode === 'draw-route' &&
+          routeStopOrder &&
+          stops
+            .filter((s) => routeStopOrder[s.id])
+            .map((s) => (
+              <Marker
+                key={`order-${s.id}`}
+                position={[s.lat, s.lng]}
+                icon={stopNumIcon(routeStopOrder[s.id])}
+                interactive={false}
+                zIndexOffset={1000}
+              />
+            ))}
 
         {/* in-progress route drawing */}
         {routePoints.length > 0 && (
@@ -176,8 +245,17 @@ export default function AdminMap({
           </>
         )}
 
-        {/* pending stop placement */}
-        {draftPoint && <Marker position={[draftPoint.lat, draftPoint.lng]} icon={draftIcon} />}
+        {/* pending stop placement — draggable so the admin can fine-tune */}
+        {draftPoint && (
+          <Marker
+            position={[draftPoint.lat, draftPoint.lng]}
+            icon={draftIcon}
+            draggable
+            eventHandlers={{
+              dragend: (e) => onDraftDragEnd?.(e.target.getLatLng()),
+            }}
+          />
+        )}
 
         {/* live buses */}
         {busList.map((bus) =>

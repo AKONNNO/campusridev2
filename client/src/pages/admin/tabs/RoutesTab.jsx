@@ -165,6 +165,15 @@ export default function RoutesTab({ data }) {
   const removeStop = (stopId) => setAssigned((prev) => prev.filter((a) => a.stopId !== stopId));
   const reorder = (from, to) => setAssigned((prev) => moveItem(prev, from, to));
 
+  /** Toggle a stop in the route's order (used by the on-map stop clicks). */
+  const toggleStop = (stopId) => {
+    if (assigned.some((a) => a.stopId === stopId)) removeStop(stopId);
+    else addStop(stopId);
+  };
+
+  /** { stopId -> 1-based order } so AdminMap can draw the numbered badges. */
+  const orderMap = Object.fromEntries(assigned.map((a, i) => [a.stopId, i + 1]));
+
   const save = async () => {
     if (!form.name.trim() || !form.code.trim()) {
       setNotice('Name and code are required.');
@@ -224,16 +233,47 @@ export default function RoutesTab({ data }) {
 
       {editing !== null && (
         <div className="card p-4 space-y-4">
-          <h3 className="font-semibold text-sm">{editing === 'new' ? 'New route' : `Edit ${form.name}`}</h3>
+          <h3 className="font-semibold text-sm">{editing === 'new' ? '✏️ Add a route' : `✏️ Edit ${form.name}`}</h3>
+
+          <div>
+            <div className="rounded-xl bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-900/40 px-3 py-2 mb-2 flex items-start gap-2">
+              <span className="text-lg leading-none">🧭</span>
+              <p className="text-sm text-brand-800 dark:text-brand-100">
+                <b>Draw the path:</b> click the map to add each point, then click
+                <b> any stop</b> on the map to add it to the route's order (click
+                an assigned stop to remove it). Numbered badges show the order.
+              </p>
+            </div>
+            <AdminMap
+              routes={routes}
+              stops={stops}
+              mode="draw-route"
+              routePoints={path}
+              routeStopOrder={orderMap}
+              onMapClick={onMapClick}
+              onStopClick={(s) => toggleStop(s.id)}
+              minHeight={400}
+            />
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button className="btn-secondary !py-1 !px-2 !min-h-0 text-xs" onClick={undoPoint} disabled={path.length === 0}>
+                Undo last point
+              </button>
+              <button className="btn-secondary !py-1 !px-2 !min-h-0 text-xs" onClick={clearPath} disabled={path.length === 0}>
+                Clear
+              </button>
+              <span className="text-xs text-slate-500 self-center">{path.length} point(s)</span>
+              <span className="text-xs text-slate-400 self-center">· {assigned.length} stop(s) in route</span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="col-span-2 sm:col-span-1">
               <label className="label">Name</label>
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Queens Shuttle" />
+              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Shuttle to Brunei" />
             </div>
             <div>
               <label className="label">Code</label>
-              <input className="input" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="R4" />
+              <input className="input" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="R1" />
             </div>
             <div>
               <label className="label">Colour</label>
@@ -248,26 +288,6 @@ export default function RoutesTab({ data }) {
                 <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
                 Active
               </label>
-            </div>
-          </div>
-
-          <div>
-            <p className="label mb-1">Route path — click the map to draw each point</p>
-            <AdminMap
-              routes={routes}
-              stops={stops}
-              mode="draw-route"
-              routePoints={path}
-              onMapClick={onMapClick}
-            />
-            <div className="flex flex-wrap gap-2 mt-2">
-              <button className="btn-secondary !py-1 !px-2 !min-h-0 text-xs" onClick={undoPoint} disabled={path.length === 0}>
-                Undo last point
-              </button>
-              <button className="btn-secondary !py-1 !px-2 !min-h-0 text-xs" onClick={clearPath} disabled={path.length === 0}>
-                Clear
-              </button>
-              <span className="text-xs text-slate-500 self-center">{path.length} point(s)</span>
             </div>
           </div>
 
